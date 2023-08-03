@@ -2,7 +2,8 @@
 *.ipynb
 *.png
 .git
-设计稿
+Docs
+venv-latest1
 nginx-brotil
 origin-dist
 *.log

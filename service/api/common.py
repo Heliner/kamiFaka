@@ -9,17 +9,8 @@ from service.util.order.handle import notify_success
 
 from flask.helpers import make_response
 from service.util.pay.alipay.alipayf2f import   AlipayF2F
-from service.util.pay.hupijiao.xunhupay import Hupi     #虎皮椒支付接口
-from service.util.pay.codepay.codepay import CodePay    #码支付
-from service.util.pay.payjs.payjs import Payjs  #payjs接口
 from service.util.pay.wechat.weixin import Wechat   # 微信官方
 from service.util.pay.qq.qqpay import QQpay   # 微信官方
-from service.util.pay.epay.common import Epay   # 易支付
-from service.util.pay.mugglepay.mugglepay import Mugglepay
-from service.util.pay.yungouos.yungou import YunGou
-from service.util.pay.vmq.vmpay import VMQ  # V免签
-from service.util.pay.codepay.codepay import CodePay
-from service.util.pay.yunmq.ymq import Ymq  # 云免签
 
 common = Blueprint('common', __name__)
 # common = Blueprint('common', __name__,static_folder='../../dist/static',template_folder='../../dist/admin')
@@ -116,81 +107,6 @@ def notify(name):
                         executor.submit(notify_success,out_order_id)
             except:
                 pass
-        elif name == 'xunhupay':
-            trade_status = request.form.get('status',None)
-            if trade_status and trade_status == 'OD':
-                plugins = request.form.get('plugins', None)
-                if plugins and plugins.find('wechat') !=-1:
-                    res = Hupi(payment='wechat').verify(request.form.to_dict())
-                else:
-                    res = Hupi(payment='alipay').verify(request.form.to_dict())
-                if res:
-                    out_order_id = request.form.get('trade_order_id', None)
-                    executor.submit(notify_success,out_order_id)
-        elif name == 'payjs':
-            trade_status = request.form.get('return_code',None)
-            if trade_status and trade_status == '1':
-                attach = request.form.get('attach', None)
-                if attach and attach.find('wechat') !=-1:
-                    res = Payjs(payment='wechat').verify(request.form.to_dict())
-                else:
-                    res = Payjs(payment='alipay').verify(request.form.to_dict())
-                if res:
-                    out_order_id = request.form.get('out_trade_no', None)
-                    executor.submit(notify_success,out_order_id)
-        elif name == 'vmq':
-            out_order_id = request.args.get('payId', None)
-            if out_order_id and len(out_order_id) == 27:
-                payUrl = request.args.get('payUrl', None)
-                if payUrl and payUrl.find('alipay') != -1:  # find找不着是返回-1
-                    res = VMQ(payment='alipay').verify(request.args.to_dict())
-                else:
-                    res = VMQ(payment='wechat').verify(request.args.to_dict())
-                if res:
-                    executor.submit(notify_success,out_order_id)
-        elif name == 'epay':
-            trade_status = request.args.get('trade_status', None)
-            if trade_status and trade_status == 'TRADE_SUCCESS':
-                pay_type = request.args.get('type', None)
-                if pay_type and pay_type == 'alipay':
-                    payment = 'alipay'
-                elif name == 'wxpay':
-                    payment = 'wechat'
-                else:
-                    payment = 'qqpay'
-                res = Epay(payment).verify(request.args.to_dict())
-                if res:
-                    out_order_id = request.args.get('out_trade_no', None)
-                    executor.submit(notify_success,out_order_id)
-        elif name == 'yungou':
-            code = request.form.get('code', None)
-            if code == '1':
-                res = YunGou().verify(request.form.to_dict())
-                if res:
-                    out_order_id = request.form.get('outTradeNo', None)
-                    executor.submit(notify_success,out_order_id)
-                    return 'SUCCESS'    # 特有属性
-        elif name == 'yungouwx':
-            code = request.form.get('code', None)
-            if code == '1':
-                res = YunGou(payment = 'wechat').verify(request.form.to_dict())
-                if res:
-                    out_order_id = request.form.get('outTradeNo', None)
-                    executor.submit(notify_success,out_order_id)
-                    return 'SUCCESS'    # 特有属性
-        elif name == 'codepay':
-            pay_type = request.form.get('type', None)
-            if pay_type:
-                if pay_type == '3':
-                    payment = 'wechat'
-                elif pay_type == '2':
-                    payment = 'qqpay'
-                elif pay_type == '1':
-                    payment = 'alipay'
-                res = CodePay(payment).verify(request.form.to_dict())
-                if res:
-                    out_order_id = request.form.get('pay_id', None)
-                    executor.submit(notify_success,out_order_id)
         elif name == 'qqpay':
             try:
                 xml = request.data
@@ -208,37 +124,9 @@ def notify(name):
                         executor.submit(notify_success,out_order_id)
             except:
                 pass
-        elif name == 'mugglepay':
-            status = request.form.get('status', None)
-            if status and status == 'PAID':
-                res = Mugglepay().verify(request.form.to_dict())
-                if res:
-                    out_order_id = request.form.get('merchant_order_id')
-                    executor.submit(notify_success,out_order_id)
-        elif name == 'stripe':
-            source = request.args.get('source', None)   #id
-            livemode = request.args.get('livemode', None)   #id
-            client_secret = request.args.get('client_secret', None)   #id
-            if livemode == 'true' and client_secret and livemode and len(client_secret) == 42 and len(source) == 28:
-                # 开始查询
-                executor.submit(stripe_check,source,client_secret)
-        elif name == 'ymq':
-            out_order_id = request.form.get('out_order_sn',None)
-            if out_order_id and len(out_order_id) == 27:
-                pay_way = request.form.get('pay_way', None)
-                if pay_way and pay_way == 'wechat':
-                    payment = 'wechat'
-                elif pay_way == 'alipay':
-                    payment = 'alipay'
-                else:
-                    pass
-                res = Ymq(payment=payment).verify(request.form.to_dict())
-                if res:
-                    executor.submit(notify_success,out_order_id)                                     
     except:
         pass
     return 'success'
-
 
 
 def stripe_check(source,client_secret):

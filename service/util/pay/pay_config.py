@@ -1,5 +1,4 @@
 from os import name
-from service.util.pay.hupijiao.xunhupay import payment
 from service.database.models import Payment,Config
 
 def get_config(name):
